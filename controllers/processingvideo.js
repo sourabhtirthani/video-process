@@ -1,52 +1,53 @@
-const { json } = require("body-parser");
-const AWS = require("aws-sdk");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const fs = require("fs");
 const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath("C:UserssouraDesktop\video-processing-api\trimedVideo"); // Replace with the actual path to FFmpeg
+
 const { google } = require("googleapis");
 const youtube = google.youtube("v3");
 
 // AWS S3 Configuration
-const s3 = new AWS.S3({
-  accessKeyId: `${process.env.accessKeyId}`,
-  secretAccessKey: `${process.env.secretAccessKey}`,
+const s3Client = new S3Client({
+  credentials: {
+    accessKeyId: "6455254d6d7a99da23d80411",
+    secretAccessKey: "645525590505d048c8f8d424",
+  },
+  region: "us-east-1", // Replace with your AWS region (e.g., 'us-east-1')
 });
 
 // Google API Client Configuration
 const youtubeApiKey = `${process.env.youtubeApiKey}`;
-const oauth2Client = new google.auth.OAuth2();
-oauth2Client.setCredentials({
-  access_token: `${process.env.access_token}`,
-  refresh_token: `${process.env.refresh_token}`,
-});
-google.options({ auth: oauth2Client });
 
 // API endpoint to process the video
-exports.processvideo= async (req, res) => {
+exports.processvideo = async (req, res) => {
   try {
     // Retrieve the S3 bucket key from the request (assuming it's passed as a query parameter)
-    const s3ObjectKey = req.query.key;
+    // const s3ObjectKey =
+    //   "6455254d6d7a99da23d80411/645525590505d048c8f8d424/%23Reel+2.mp4";
 
-    // Step 1: Download the video from AWS S3
-    const downloadParams = {
-      Bucket: "YOUR_S3_BUCKET_NAME",
-      Key: s3ObjectKey,
-    };
+    // // Step 1: Download the video from AWS S3 using AWS SDK v3
+    // const getObjectCommand = new GetObjectCommand({
+    //   Bucket: "YOUR_S3_BUCKET_NAME",
+    //   Key: s3ObjectKey,
+    // });
 
-    const downloadPath =
-      "https://qr-s3-file-upload.s3.ap-south-1.amazonaws.com/6455254d6d7a99da23d80411/645525590505d048c8f8d424/%23Reel+2.mp4"; // Temporary file to store the downloaded video
+    // const downloadPath = "../video/"; // Temporary file to store the downloaded video
+    // const fileStream = fs.createWriteStream(downloadPath);
 
-    const downloadStream = s3.getObject(downloadParams).createReadStream();
-    const writeStream = require("fs").createWriteStream(downloadPath);
-
-    downloadStream.pipe(writeStream);
-    await new Promise((resolve, reject) => {
-      writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
-    });
+    // try {
+    //   const response = await s3Client.send(getObjectCommand);
+    //   response.Body.pipe(fileStream);
+    //   await new Promise((resolve) => fileStream.on("finish", resolve));
+    // } catch (err) {
+    //   console.error("Error downloading from S3:", err);
+    //   throw err;
+    // }
+    const videoPath = "C:UserssouraDesktop\video-processing-api\video"; // Replace with the actual path
 
     // Step 2: Trim the video using FFmpeg
-    const trimmedPath = '../trimedVideo';
+    const trimmedPath = "C:UserssouraDesktop\video-processing-api\trimedVideo";
 
-    ffmpeg(downloadPath)
+    ffmpeg(videoPath)
       .setStartTime("00:00:00")
       .setDuration("50%") // Trims to half its length
       .output(trimmedPath)
@@ -93,4 +94,3 @@ exports.processvideo= async (req, res) => {
     res.status(500).json({ error: "Video processing failed" });
   }
 };
-
